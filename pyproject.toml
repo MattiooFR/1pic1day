@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "1pic1day"
+version = "0.1.0"
+description = "Upload an album photo where only one picture per day can be seen"
+authors = ["MattiooFR <13595614+MattiooFR@users.noreply.github.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+flask_script = "^2.0.6"
+flask_migrate = "^2.5.3"
+psycopg2-binary = "^2.8.5"
+flask_cors = "^3.0.8"
+
+[tool.poetry.dev-dependencies]
+autopep8 = "^1.5.1"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
