@@ -12,11 +12,13 @@
 - Testing Flask Applications
 - Deploying Applications
 
+Generate and "consume" a new picture only if someone goes and see the album a particular day.
+
 ## General Specifications
 
 Models will include at least…
 
-- Two classes with primary keys at at least two attributes each
+- Two classes with primary keys and at least two attributes each
 - [Optional but encouraged] One-to-many or many-to-many relationships between classes
 
 Endpoints will include at least…
