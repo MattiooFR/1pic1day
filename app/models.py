@@ -18,15 +18,17 @@ class User(db.Model):
     id = Column(Integer, primary_key=True)
     name = Column(String(64), index=True)
     email = Column(String(120), index=True, unique=True)
+    picture = Column(String(300), unique=True)
     sub = Column(String(50), index=True, unique=True)
     albums = db.relationship("Album", backref="creator", lazy="dynamic")
 
     def __repr__(self):
         return "<User {} {} {}>".format(self.name, self.email, self.sub)
 
-    def __init__(self, name, email, sub):
+    def __init__(self, name, email, picture, sub):
         self.name = name
         self.email = email
+        self.picture = picture
         self.sub = sub
 
     def insert(self):
@@ -41,7 +43,13 @@ class User(db.Model):
         db.session.commit()
 
     def format(self):
-        return {"id": self.id, "name": self.name, "email": self.email, "sub": self.sub}
+        return {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+            "picture": self.picture,
+            "sub": self.sub,
+        }
 
 
 class Album(db.Model):
