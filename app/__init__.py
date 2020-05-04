@@ -1,11 +1,9 @@
-import cloudinary
-import cloudinary.api
-import cloudinary.uploader
 from authlib.integrations.flask_client import OAuth
 from flask import Flask
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from flask_uploads import UploadSet, configure_uploads, IMAGES, patch_request_class
 
 
 app = Flask(__name__)
@@ -15,14 +13,11 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 
+photos = UploadSet("photos", IMAGES)
+configure_uploads(app, photos)
+patch_request_class(app)  # set maximum file size, default is 16MB
+
 CORS(app)
-
-
-cloudinary.config.update = {
-    "cloud_name": app.config.get("CLOUDINARY_CLOUD_NAME"),
-    "api_key": app.config.get("CLOUDINARY_API_KEY"),
-    "api_secret": app.config.get("CLOUDINARY_API_SECRET"),
-}
 
 oauth = OAuth(app)
 

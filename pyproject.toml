@@ -11,12 +11,13 @@ flask_migrate = "^2.5.3"
 psycopg2-binary = "^2.8.5"
 flask_cors = "^3.0.8"
 gunicorn = "^20.0.4"
-cloudinary = "^1.20.0"
 requests = "^2.23.0"
 authlib = "^0.14.1"
 six = "^1.14.0"
 flask-wtf = "^0.14.3"
 flask-bootstrap = "^3.3.7"
+flask-uploads = {git = "https://github.com/maxcountryman/flask-uploads.git"}
+werkzeug = "^1.0.1"
 
 [tool.poetry.dev-dependencies]
 python-dotenv = "^0.13.0"
