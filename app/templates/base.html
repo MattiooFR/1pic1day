@@ -1,10 +1,53 @@
+<!doctype html>
 <html>
-    <head>
-      <title>1pic1day</title>
-    </head>
-    <body>
-        <div><a href="/login">Login</a> to create an album</div>
-        <hr>
-        {% block content %}{% endblock %}
-    </body>
+<head>
+  <title>1pic1day</title>
+
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+  <link type="text/css" rel="stylesheet" href="/static/css/custom.css" />
+  <script src="/static/js/lib/moment.js"></script>
+</head>
+<body>
+  <!-- Wrap all page content here -->
+  <div id="wrap">
+    {% if logged_in %}
+    <nav class="navbar navbar-expand-lg navbar-light bg-light some-padding">
+      <a class="navbar-brand" href="#">📸</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse justify-content-end" id="navbarNavAltMarkup">
+        <div class="navbar-nav">
+          <a class="nav-item nav-link" {% if request.endpoint == 'create' %} class="nav-item nav-link active" {% endif %} href="{{ url_for('create_album') }}">Create 1 album</a>
+          <a class="nav-item nav-link" {% if request.endpoint == 'create' %} class="nav-item nav-link active" {% endif %} href="{{ url_for('get_albums') }}">My albums</a>
+          <a class="nav-item nav-link" {% if request.endpoint == 'create' %} class="nav-item nav-link active" {% endif %} href="{{ url_for('manage_file') }}">Edit this album</a>
+          <a class="nav-item nav-link" {% if request.endpoint == 'create' %} class="nav-item nav-link active" {% endif %} href="{{ url_for('profile') }}">Hello {{ userinfo['name'].split(" ")[0] }}  <img class="avatar" src="{{ userinfo['picture'] }}"/></a>
+        </div>
+      </div>
+    </nav>
+    {% endif %}
+
+    <!-- Begin page content -->
+    <main id="content" role="main" class="container">
+
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-block alert-info fade in">
+              <a class="close" data-dismiss="alert">&times;</a>
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+
+    </main>
+
+  </div>
+
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+  <script src="/static/js/lib/plugins.js" defer></script>
+</body>
 </html>

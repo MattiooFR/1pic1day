@@ -25,11 +25,11 @@ class User(db.Model):
     def __repr__(self):
         return "<User {} {} {}>".format(self.name, self.email, self.user_id)
 
-    def __init__(self, name, email, picture, user_id):
+    def __init__(self, name, email, user_id, picture):
         self.name = name
         self.email = email
-        self.picture = picture
         self.user_id = user_id
+        self.picture = picture
 
     def insert(self):
         db.session.add(self)
