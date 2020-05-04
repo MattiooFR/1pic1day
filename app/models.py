@@ -19,17 +19,17 @@ class User(db.Model):
     name = Column(String(64), index=True)
     email = Column(String(120), index=True, unique=True)
     picture = Column(String(300), unique=True)
-    sub = Column(String(50), index=True, unique=True)
+    user_id = Column(String(50), index=True, unique=True)
     albums = db.relationship("Album", backref="creator", lazy="dynamic")
 
     def __repr__(self):
-        return "<User {} {} {}>".format(self.name, self.email, self.sub)
+        return "<User {} {} {}>".format(self.name, self.email, self.user_id)
 
-    def __init__(self, name, email, picture, sub):
+    def __init__(self, name, email, picture, user_id):
         self.name = name
         self.email = email
         self.picture = picture
-        self.sub = sub
+        self.user_id = user_id
 
     def insert(self):
         db.session.add(self)
@@ -48,7 +48,7 @@ class User(db.Model):
             "name": self.name,
             "email": self.email,
             "picture": self.picture,
-            "sub": self.sub,
+            "user_id": self.user_id,
         }
 
 
