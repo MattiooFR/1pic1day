@@ -4,6 +4,9 @@ from flask import jsonify, redirect, render_template, session, url_for, abort, f
 from six.moves.urllib.parse import urlencode
 from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
+from jose import jwt
+from urllib.request import urlopen
+
 
 from app.models import User
 from app import db
@@ -27,9 +30,7 @@ class AuthError(Exception):
 def get_token_auth_header():
     """Obtains the Access Token from the Authorization Header
     """
-    print(request.headers)
     auth = request.headers.get("Authorization", None)
-    print("heheheee")
     if not auth:
         raise AuthError(
             {
@@ -88,7 +89,6 @@ def verify_decode_jwt(token):
     jsonurl = urlopen(f"https://{AUTH0_DOMAIN}/.well-known/jwks.json")
     jwks = json.loads(jsonurl.read())
     unverified_header = jwt.get_unverified_header(token)
-    print(unverified_header)
     rsa_key = {}
     if "kid" not in unverified_header:
         raise AuthError(
@@ -146,22 +146,12 @@ def verify_decode_jwt(token):
     )
 
 
-# def requires_auth(f):
-#     @wraps(f)
-#     def decorated(*args, **kwargs):
-#         if "profile" not in session:
-#             # Redirect to Login page here
-#             return redirect("/login")
-#         return f(*args, **kwargs)
-
-#     return decorated
 def requires_auth(permission=""):
     def requires_auth_decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
             try:
-                token = get_token_auth_header()
-                print(token)
+                token = session["jwt_payload"]["access_token"]
                 payload = verify_decode_jwt(token)
                 check_permissions(permission, payload)
             except:
@@ -176,7 +166,6 @@ def requires_auth(permission=""):
 
 @app.route("/")
 def home():
-    print(session)
     if "profile" in session:
         return render_template(
             "index.html",
@@ -188,28 +177,11 @@ def home():
         return render_template("index.html", logged_in=False)
 
 
-@app.route("/login")
-def login():
-    return auth0.authorize_redirect(
-        redirect_uri=app.config.get("AUTH0_ALLOWED_CALLBACK"), audience=API_AUDIENCE
-    )
-
-
-@app.route("/profile")
-@requires_auth("get:albums")
-def profile():
-    return render_template("profile.html")
-
-
-@app.route("/callback")
-def callback_handling():
+@app.route("/auth")
+def auth():
     # Handles response from token endpoint
-    auth0.authorize_access_token()
-
-    resp = auth0.get("userinfo")
-    userinfo = resp.json()
-
-    print(userinfo)
+    token = auth0.authorize_access_token()
+    userinfo = auth0.parse_id_token(token)
 
     user = User.query.filter(User.email == userinfo["email"]).first()
     error = False
@@ -238,7 +210,7 @@ def callback_handling():
             flash("Hello " + user.name.split(" ")[0])
 
         # Store the user information in flask session.
-        session["jwt_payload"] = userinfo
+        session["jwt_payload"] = token
         session["profile"] = {
             "user_id": userinfo["sub"],
             "name": userinfo["name"],
@@ -248,14 +220,10 @@ def callback_handling():
         return redirect(url_for("home"))
 
 
-@app.route("/edit")
-def edit_album():
-    return render_template("index.html")
-
-
-@app.route("/albums")
-def get_albums():
-    return render_template("index.html")
+@app.route("/login")
+def login():
+    redirect_uri = app.config.get("AUTH0_ALLOWED_CALLBACK")
+    return auth0.authorize_redirect(redirect_uri, audience=API_AUDIENCE)
 
 
 @app.route("/logout")
@@ -268,6 +236,22 @@ def logout():
         "client_id": "trbeSG7dcFv0WcfZI4fGicHuy1KWkj85",
     }
     return redirect(auth0.api_base_url + "/v2/logout?" + urlencode(params))
+
+
+@app.route("/profile")
+@requires_auth("get:albums")
+def profile(payload):
+    return render_template("profile.html")
+
+
+@app.route("/edit")
+def edit_album():
+    return render_template("index.html")
+
+
+@app.route("/albums")
+def get_albums():
+    return render_template("index.html")
 
 
 @app.route("/create", methods=["GET", "POST"])

@@ -21,11 +21,7 @@ oauth = OAuth(app)
 
 auth0 = oauth.register(
     "auth0",
-    client_id=app.config.get("AUTH0_CLIENT_ID"),
-    client_secret=app.config.get("AUTH0_CLIENT_SECRET"),
-    api_base_url=app.config.get("AUTH0_DOMAIN"),
-    access_token_url=app.config.get("AUTH0_ACCESS_TOKEN_URL"),
-    authorize_url=app.config.get("AUTH0_AUTHORIZE_URL"),
+    server_metadata_url=app.config.get("CONF_URL"),
     client_kwargs={"scope": "openid profile email"},
 )
 
