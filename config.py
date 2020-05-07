@@ -14,7 +14,7 @@ SQLALCHEMY_DATABASE_URI = os.environ.get("SQLALCHEMY_DATABASE_URI")
 # Disable track modifications option
 SQLALCHEMY_TRACK_MODIFICATIONS = os.environ.get("SQLALCHEMY_TRACK_MODIFICATIONS")
 
-UPLOADED_PHOTOS_DEST = os.path.join(basedir, "/static/uploads")
+UPLOADED_PHOTOS_DEST = os.path.join(basedir, "app/static/uploads/")
 
 AUTH0_DOMAIN = os.environ.get("AUTH0_DOMAIN")
 API_AUDIENCE = os.environ.get("API_AUDIENCE")

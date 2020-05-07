@@ -12,6 +12,8 @@
 - Testing Flask Applications
 - Deploying Applications
 
+Utiliser S3 d'AWS pour stocker les images car Heroku supprime tout chaque jours
+
 Generate and "consume" a new picture only if someone goes and see the album a particular day.
 
 ## General Specifications

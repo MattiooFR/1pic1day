@@ -4,14 +4,16 @@
 
 {% if not logged_in %}
 <div class="login-box center">
-  <a class="btn btn-primary btn-login" href="/login">Log In</a>
+  <a class="btn btn-primary center-page" href="/login">Log In</a>
 </div>
 {% else %}
 <div class="logged-in-box auth0-box logged-in">
   <h2>Welcome {{userinfo['name']}}</h2>
   <pre>{{userinfo_pretty}}</pre>
-  <a class="btn btn-primary btn-lg btn-logout btn-block" href="/logout"
+  <a class="btn btn-primary btn-logout btn-block" href="/logout"
     >Logout</a
   >
 </div>
-{% endif %} {% endblock %}
+{% endif %}
+
+{% endblock %}

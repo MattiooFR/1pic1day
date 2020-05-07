@@ -61,7 +61,7 @@ class Album(db.Model):
     images = db.relationship("Image", backref="album", lazy="dynamic")
 
     def __repr__(self):
-        return "<Album {} {} {}>".format(self.name, self.url, self.user_id)
+        return "<Album {} {} {}>".format(self.name, self.url, self.user_id, self.images)
 
     def __init__(self, name, url, user):
         self.name = name
@@ -86,6 +86,7 @@ class Album(db.Model):
             "url": self.url,
             "timestamp": self.timestamp,
             "user_id": self.user_id,
+            "images": self.images,
         }
 
 

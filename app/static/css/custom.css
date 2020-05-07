@@ -1,12 +1,10 @@
-.center {
+.center-screen {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-}
-
-.btn-login {
-  position: absolute;
-  top: 50%;
+  text-align: center;
+  min-height: 100vh;
 }
 
 .some-padding {

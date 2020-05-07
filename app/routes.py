@@ -1,16 +1,31 @@
 from functools import wraps
 
-from flask import jsonify, redirect, render_template, session, url_for, abort, flash
+from flask import (
+    jsonify,
+    redirect,
+    render_template,
+    session,
+    url_for,
+    abort,
+    flash,
+    request,
+)
 from six.moves.urllib.parse import urlencode
 from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
 from jose import jwt
 from urllib.request import urlopen
 
+import time
+import hashlib
+import sys
 
-from app.models import User
+from app.models import User, Album, Image
+from app.forms import CreateAlbumForm
 from app import db
+from app import photos
 
+import os
 import json
 
 from app import app, auth0
@@ -235,7 +250,9 @@ def logout():
         "returnTo": url_for("home", _external=True),
         "client_id": "trbeSG7dcFv0WcfZI4fGicHuy1KWkj85",
     }
-    return redirect(auth0.api_base_url + "/v2/logout?" + urlencode(params))
+    return redirect(
+        "https://" + app.config.get("AUTH0_DOMAIN") + "/v2/logout?" + urlencode(params)
+    )
 
 
 @app.route("/profile")
@@ -254,22 +271,84 @@ def get_albums():
     return render_template("index.html")
 
 
+@app.route("/<album_id>", methods=["GET"])
+def get_album(album_id):
+    album = Album.query.filter(Album.url == album_id).first()
+    if not album:
+        abort(404)
+
+    user = User.query.get(album.user_id)
+
+    can_manage = user.user_id == session["profile"].get("user_id")
+
+    if album:
+        files_list = os.listdir(app.config.get("UPLOADED_PHOTOS_DEST") + album_id)
+        return render_template(
+            "album.html",
+            album=album.format(),
+            files_list=files_list,
+            can_manage=can_manage,
+        )
+    else:
+        flash("Wrong album URL")
+        abort(404)
+    return render_template("index.html")
+
+
 @app.route("/create", methods=["GET", "POST"])
 def create_album():
     form_album = CreateAlbumForm()
-    form_upload = UploadForm()
-    if form.validate_on_submit():
-        for filename in request.files.getlist("photo"):
-            name = hashlib.md5("admin" + str(time.time())).hexdigest()[:15]
-            photos.save(filename, name=name + ".")
-        success = True
+    error = False
+    if request.method == "GET":
+        return render_template("create_album.html", form=form_album, success=False)
+
+    if form_album.validate_on_submit():
+        try:
+            form_values = request.form
+            user = User.query.filter(
+                User.user_id == session["profile"].get("user_id")
+            ).first()
+            album_name = hashlib.md5(
+                "unicorn".encode("utf-8") + str(time.time()).encode("utf-8")
+            ).hexdigest()[:10]
+            venue = Album(name=form_values.get("name"), url=album_name, user=user)
+
+            venue.insert()
+
+            for filename in request.files.getlist("photo"):
+                name = hashlib.md5(
+                    "admin".encode("utf-8") + str(time.time()).encode("utf-8")
+                ).hexdigest()[:10]
+                photos.save(filename, folder=album_name, name=name + ".")
+
+            success = True
+
+            # if error we rollback the commit
+        except BaseException:
+            error = True
+            db.session.rollback()
+            print(sys.exc_info())
+        finally:
+            db.session.close()
+
+            # we flash an error if the creation of an Album didn't work
+            if error:
+                flash("An error occurred.")
+                success = False
+            else:
+                flash(
+                    "The album was created. Accessible at this address : {}".format(
+                        "http://localhost:5000/" + album_name
+                    )
+                )
+
     else:
         success = False
-    return render_template("index.html", form=form, success=success)
+    return render_template("create_album.html", form=form_album, success=success)
 
 
-@app.route("/manage")
-def manage_file():
+@app.route("/<album_id>/manage")
+def manage_file(album_id):
     files_list = os.listdir(app.config["UPLOADED_PHOTOS_DEST"])
     return render_template("manage.html", files_list=files_list)
 
@@ -309,10 +388,7 @@ def unauthorized(error):
 
 @app.errorhandler(404)
 def not_found(error):
-    return (
-        jsonify({"success": False, "error": 404, "message": "Resources Not Found"}),
-        404,
-    )
+    return render_template("404.html")
 
 
 @app.errorhandler(405)

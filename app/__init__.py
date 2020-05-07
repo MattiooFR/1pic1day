@@ -1,3 +1,7 @@
+import os
+import time
+import hashlib
+
 from authlib.integrations.flask_client import OAuth
 from flask import Flask
 from flask_cors import CORS
@@ -12,6 +16,7 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 photos = UploadSet("photos", IMAGES)
+
 configure_uploads(app, photos)
 patch_request_class(app)  # set maximum file size, default is 16MB
 
@@ -25,4 +30,4 @@ auth0 = oauth.register(
     client_kwargs={"scope": "openid profile email"},
 )
 
-from app import models, routes
+from app import models, routes, forms
