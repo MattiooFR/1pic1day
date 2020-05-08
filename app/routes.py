@@ -16,6 +16,8 @@ from werkzeug.utils import secure_filename
 from jose import jwt
 from urllib.request import urlopen
 
+import random
+
 import time
 import hashlib
 import sys
@@ -283,12 +285,26 @@ def get_album(album_id):
 
     if album:
         files_list = os.listdir(app.config.get("UPLOADED_PHOTOS_DEST") + album_id)
-        return render_template(
-            "album.html",
-            album=album.format(),
-            files_list=files_list,
-            can_manage=can_manage,
-        )
+
+        photo_picked = random.choice(files_list)
+
+        if "profile" in session:
+            return render_template(
+                "album.html",
+                photo=url_for(
+                    "static", filename="uploads/" + album_id + "/" + photo_picked
+                ),
+                userinfo=session["profile"],
+                logged_in=True,
+            )
+        else:
+            return render_template(
+                "album.html",
+                photo=url_for(
+                    "static", filename="uploads/" + album_id + "/" + photo_picked
+                ),
+                logged_in=False,
+            )
     else:
         flash("Wrong album URL")
         abort(404)

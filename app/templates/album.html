@@ -2,8 +2,6 @@
 
 {% block content %}
 
-{% for photo in files_list %}
-    - {{ photo|e }}
-{% endfor %}
+<img src="{{ photo }}"/>
 
 {% endblock %}
