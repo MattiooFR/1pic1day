@@ -285,3 +285,4 @@ Temporary Items
 
 .env
 .flaskenv
+app/static/uploads
