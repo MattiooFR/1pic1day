@@ -22,7 +22,7 @@ import time
 import hashlib
 import sys
 
-from app.models import User, Album, Image
+from app.models import Album, Image
 from app.forms import CreateAlbumForm
 from app import db
 from app import photos
@@ -200,41 +200,15 @@ def auth():
     token = auth0.authorize_access_token()
     userinfo = auth0.parse_id_token(token)
 
-    user = User.query.filter(User.email == userinfo["email"]).first()
-    error = False
+    # Store the user information in flask session.
+    session["jwt_payload"] = token
+    session["profile"] = {
+        "user_id": userinfo["sub"],
+        "name": userinfo["name"],
+        "picture": userinfo["picture"],
+    }
 
-    try:
-        if user == None:
-            user = User(
-                userinfo["name"],
-                userinfo["email"],
-                userinfo["sub"],
-                userinfo["picture"],
-            )
-            user.insert()
-
-    # if error we rollback the commit
-    except BaseException:
-        print("error")
-        error = True
-        db.session.rollback()
-        print(sys.exc_info())
-    finally:
-        if error:
-            flash("An error occurred. Could not login !")
-            return redirect(url_for("home"))
-        else:
-            flash("Hello " + user.name.split(" ")[0])
-
-        # Store the user information in flask session.
-        session["jwt_payload"] = token
-        session["profile"] = {
-            "user_id": userinfo["sub"],
-            "name": userinfo["name"],
-            "picture": userinfo["picture"],
-        }
-
-        return redirect(url_for("home"))
+    return redirect(url_for("home"))
 
 
 @app.route("/login")
@@ -277,38 +251,29 @@ def get_albums():
 def get_album(album_id):
     album = Album.query.filter(Album.url == album_id).first()
     if not album:
-        abort(404)
-
-    user = User.query.get(album.user_id)
-
-    can_manage = user.user_id == session["profile"].get("user_id")
-
-    if album:
-        files_list = os.listdir(app.config.get("UPLOADED_PHOTOS_DEST") + album_id)
-
-        photo_picked = random.choice(files_list)
-
-        if "profile" in session:
-            return render_template(
-                "album.html",
-                photo=url_for(
-                    "static", filename="uploads/" + album_id + "/" + photo_picked
-                ),
-                userinfo=session["profile"],
-                logged_in=True,
-            )
-        else:
-            return render_template(
-                "album.html",
-                photo=url_for(
-                    "static", filename="uploads/" + album_id + "/" + photo_picked
-                ),
-                logged_in=False,
-            )
-    else:
         flash("Wrong album URL")
         abort(404)
-    return render_template("index.html")
+
+    files_list = os.listdir(app.config.get("UPLOADED_PHOTOS_DEST") + album_id)
+
+    photo_picked = random.choice(files_list)
+
+    if "profile" in session and album.user_id == session["profile"].get("user_id"):
+        userinfo = session["profile"]
+        can_manage = True
+        logged_in = True
+    else:
+        userinfo = None
+        can_manage = False
+        logged_in = False
+
+    return render_template(
+        "album.html",
+        photo=url_for("static", filename="uploads/" + album_id + "/" + photo_picked),
+        userinfo=userinfo,
+        can_manage=can_manage,
+        logged_in=logged_in,
+    )
 
 
 @app.route("/create", methods=["GET", "POST"])
@@ -317,25 +282,32 @@ def create_album():
     error = False
     if request.method == "GET":
         return render_template("create_album.html", form=form_album, success=False)
-
-    if form_album.validate_on_submit():
+    elif form_album.validate_on_submit():
         try:
             form_values = request.form
-            user = User.query.filter(
-                User.user_id == session["profile"].get("user_id")
-            ).first()
+
             album_name = hashlib.md5(
                 "unicorn".encode("utf-8") + str(time.time()).encode("utf-8")
             ).hexdigest()[:10]
-            venue = Album(name=form_values.get("name"), url=album_name, user=user)
 
-            venue.insert()
+            if session["profile"]:
+                user_id = session["profile"].get("user_id")
+            else:
+                user_id = "ANON"
+
+            album = Album(name=form_values.get("name"), url=album_name, user_id=user_id)
+            db.session.add(album)
 
             for filename in request.files.getlist("photo"):
                 name = hashlib.md5(
                     "admin".encode("utf-8") + str(time.time()).encode("utf-8")
                 ).hexdigest()[:10]
                 photos.save(filename, folder=album_name, name=name + ".")
+
+                image = Image(url=name, album=album)
+                db.session.add(image)
+
+            db.session.commit()
 
             success = True
 
@@ -349,7 +321,7 @@ def create_album():
 
             # we flash an error if the creation of an Album didn't work
             if error:
-                flash("An error occurred.")
+                flash("An error occurred. Try again")
                 success = False
             else:
                 flash(
@@ -364,9 +336,9 @@ def create_album():
 
 
 @app.route("/<album_id>/manage")
-def manage_file(album_id):
+def manage_album(album_id):
     files_list = os.listdir(app.config["UPLOADED_PHOTOS_DEST"])
-    return render_template("manage.html", files_list=files_list)
+    return render_template("album.html", files_list=files_list)
 
 
 @app.route("/open/<filename>")
