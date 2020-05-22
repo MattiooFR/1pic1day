@@ -1,8 +1,16 @@
 {% extends "base.html" %}
 
+{% from 'bootstrap/form.html' import render_form, render_field %}
+
+{% block page_name %}Creating 1 album{% endblock %}
+
 {% block content %}
+<div class="center-div">
     <h1>Create 1 album</h1>
-    <form method="post" enctype="multipart/form-data">
+    <hr>
+        {{ render_form(form, method='post', enctype="multipart/form-data") }}
+    <hr>
+    <!-- <form class="form form-horizontal" method="post" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
         <p>
             {{ form.name.label }}<br>
@@ -16,10 +24,11 @@
         <button>
             {{ form.submit }}
         </button>
-    </form>
+    </form> -->
 
     {% if success %}
     <br>
     <p>Upload Success!</p>
     {% endif %}
+</div>
 {% endblock %}

@@ -1,4 +1,6 @@
 from functools import wraps
+import os
+import json
 
 from flask import (
     jsonify,
@@ -9,32 +11,27 @@ from flask import (
     abort,
     flash,
     request,
+    current_app,
 )
 from six.moves.urllib.parse import urlencode
-from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
 from jose import jwt
 from urllib.request import urlopen
 
 import random
+import shutil
 
+import datetime
 import time
 import hashlib
 import sys
 
 from app.models import Album, Image
-from app.forms import CreateAlbumForm
-from app import db
-from app import photos
+from app.main.forms import CreateAlbumForm, EditAlbumNameForm
+from app import db, photos
+from app.main import bp
 
-import os
-import json
-
-from app import app, auth0
-
-AUTH0_DOMAIN = app.config.get("AUTH0_DOMAIN")
 ALGORITHMS = ["RS256"]
-API_AUDIENCE = app.config.get("API_AUDIENCE")
 
 
 class AuthError(Exception):
@@ -103,7 +100,9 @@ def check_permissions(permission, payload):
 
 
 def verify_decode_jwt(token):
-    jsonurl = urlopen(f"https://{AUTH0_DOMAIN}/.well-known/jwks.json")
+    jsonurl = urlopen(
+        f"https://{current_app.config.get('AUTH0_DOMAIN')}/.well-known/jwks.json"
+    )
     jwks = json.loads(jsonurl.read())
     unverified_header = jwt.get_unverified_header(token)
     rsa_key = {}
@@ -127,8 +126,8 @@ def verify_decode_jwt(token):
                 token,
                 rsa_key,
                 algorithms=ALGORITHMS,
-                audience=API_AUDIENCE,
-                issuer="https://" + AUTH0_DOMAIN + "/",
+                audience=current_app.config.get("API_AUDIENCE"),
+                issuer="https://" + current_app.config.get("AUTH0_DOMAIN") + "/",
             )
 
             return payload
@@ -181,7 +180,7 @@ def requires_auth(permission=""):
     return requires_auth_decorator
 
 
-@app.route("/")
+@bp.route("/")
 def home():
     if "profile" in session:
         return render_template(
@@ -194,11 +193,11 @@ def home():
         return render_template("index.html", logged_in=False)
 
 
-@app.route("/auth")
+@bp.route("/auth")
 def auth():
     # Handles response from token endpoint
-    token = auth0.authorize_access_token()
-    userinfo = auth0.parse_id_token(token)
+    token = current_app.auth0.authorize_access_token()
+    userinfo = current_app.auth0.parse_id_token(token)
 
     # Store the user information in flask session.
     session["jwt_payload"] = token
@@ -208,55 +207,75 @@ def auth():
         "picture": userinfo["picture"],
     }
 
-    return redirect(url_for("home"))
+    return redirect(url_for("main.home"))
 
 
-@app.route("/login")
+@bp.route("/login")
 def login():
-    redirect_uri = app.config.get("AUTH0_ALLOWED_CALLBACK")
-    return auth0.authorize_redirect(redirect_uri, audience=API_AUDIENCE)
+    redirect_uri = current_app.config.get("AUTH0_ALLOWED_CALLBACK")
+    return current_app.auth0.authorize_redirect(
+        redirect_uri, audience=current_app.config.get("API_AUDIENCE")
+    )
 
 
-@app.route("/logout")
+@bp.route("/logout")
 def logout():
     # Clear session stored data
     session.clear()
     # Redirect user to logout endpoint
     params = {
-        "returnTo": url_for("home", _external=True),
+        "returnTo": url_for("main.home", _external=True),
         "client_id": "trbeSG7dcFv0WcfZI4fGicHuy1KWkj85",
     }
     return redirect(
-        "https://" + app.config.get("AUTH0_DOMAIN") + "/v2/logout?" + urlencode(params)
+        "https://"
+        + current_app.config.get("AUTH0_DOMAIN")
+        + "/v2/logout?"
+        + urlencode(params)
     )
 
 
-@app.route("/profile")
+@bp.route("/profile")
 @requires_auth("get:albums")
 def profile(payload):
     return render_template("profile.html")
 
 
-@app.route("/edit")
+@bp.route("/edit")
 def edit_album():
     return render_template("index.html")
 
 
-@app.route("/albums")
+@bp.route("/albums")
 def get_albums():
     return render_template("index.html")
 
 
-@app.route("/<album_id>", methods=["GET"])
+@bp.route("/<album_id>", methods=["GET"])
 def get_album(album_id):
     album = Album.query.filter(Album.url == album_id).first()
     if not album:
         flash("Wrong album URL")
         abort(404)
 
-    files_list = os.listdir(app.config.get("UPLOADED_PHOTOS_DEST") + album_id)
+    if len(album.images.filter(Image.viewed == False).all()) == 0:
+        for image in album.images.all():
+            image.viewed = False
+        db.session.commit()
 
-    photo_picked = random.choice(files_list)
+    if (datetime.datetime.now() - album.last_time_viewed) > datetime.timedelta(
+        minutes=1
+    ) or album.last_photo_viewed is None:
+        files_list = [i.url for i in album.images.filter(Image.viewed == False).all()]
+        photo_picked = random.choice(files_list)
+        album.last_photo_viewed = photo_picked
+        album.last_time_viewed = datetime.datetime.now()
+        image = Image.query.filter(Image.url == photo_picked).first()
+        image.viewed = True
+
+        db.session.commit()
+    else:
+        photo_picked = album.last_photo_viewed
 
     if "profile" in session and album.user_id == session["profile"].get("user_id"):
         userinfo = session["profile"]
@@ -273,38 +292,53 @@ def get_album(album_id):
         userinfo=userinfo,
         can_manage=can_manage,
         logged_in=logged_in,
+        album_title=album.name,
     )
 
 
-@app.route("/create", methods=["GET", "POST"])
+@bp.route("/create", methods=["GET", "POST"])
 def create_album():
     form_album = CreateAlbumForm()
     error = False
+
+    if "profile" in session:
+        user_id = session["profile"].get("user_id")
+        userinfo = session["profile"]
+        logged_in = True
+    else:
+        user_id = "ANON"
+        userinfo = None
+        logged_in = False
+
     if request.method == "GET":
-        return render_template("create_album.html", form=form_album, success=False)
+        return render_template(
+            "create_album.html",
+            form=form_album,
+            success=False,
+            logged_in=logged_in,
+            userinfo=userinfo,
+        )
     elif form_album.validate_on_submit():
+        form_values = request.form
+
+        album_name = hashlib.md5(
+            "unicorn".encode("utf-8") + str(time.time()).encode("utf-8")
+        ).hexdigest()[:10]
+
         try:
-            form_values = request.form
-
-            album_name = hashlib.md5(
-                "unicorn".encode("utf-8") + str(time.time()).encode("utf-8")
-            ).hexdigest()[:10]
-
-            if session["profile"]:
-                user_id = session["profile"].get("user_id")
-            else:
-                user_id = "ANON"
-
             album = Album(name=form_values.get("name"), url=album_name, user_id=user_id)
             db.session.add(album)
-
-            for filename in request.files.getlist("photo"):
+            db.session.flush()
+            for filename in request.files.getlist(form_album.photo.name):
+                filename = secure_filename(filename.filename)
                 name = hashlib.md5(
                     "admin".encode("utf-8") + str(time.time()).encode("utf-8")
                 ).hexdigest()[:10]
                 photos.save(filename, folder=album_name, name=name + ".")
 
-                image = Image(url=name, album=album)
+                file_name = name + "." + filename.split(".")[-1]
+
+                image = Image(url=file_name, album_id=album.id)
                 db.session.add(image)
 
             db.session.commit()
@@ -316,6 +350,9 @@ def create_album():
             error = True
             db.session.rollback()
             print(sys.exc_info())
+            shutil.rmtree(
+                os.path.join(current_app.config.get("UPLOADED_PHOTOS_DEST"), album_name)
+            )
         finally:
             db.session.close()
 
@@ -329,33 +366,81 @@ def create_album():
                         "http://localhost:5000/" + album_name
                     )
                 )
-
     else:
+        print("error")
         success = False
-    return render_template("create_album.html", form=form_album, success=success)
+
+    return render_template(
+        "create_album.html",
+        form=form_album,
+        success=success,
+        logged_in=logged_in,
+        userinfo=userinfo,
+    )
 
 
-@app.route("/<album_id>/manage")
-def manage_album(album_id):
-    files_list = os.listdir(app.config["UPLOADED_PHOTOS_DEST"])
+@requires_auth("patch:album")
+@bp.route("/<album_id>/edit", methods=["GET", "POST"])
+def edit_album_name(album_id):
+    album = Album.query.filter(Album.url == album_id).first()
+    if not album:
+        flash("Wrong album URL")
+        abort(404)
+    if request.method == "GET":
+        form = EditAlbumNameForm()
+        form.name.data = album.name
+        return render_template(
+            "edit_album.html",
+            form=form,
+            success=False,
+            logged_in=True,
+            userinfo=session["profile"],
+        )
+    else:
+        form = EditAlbumNameForm(request.form)
+        if form.validate_on_submit():
+            form_values = request.form
+            album.name = form_values.get("name")
+            album.update()
+            flash("Album name changed with success!")
+            return redirect(url_for("main.get_album", album_id=album.url))
+
+
+@requires_auth("delete:album")
+@bp.route("/<album_id>/delete")
+def delete_album(album_id):
+    if "profile" in session:
+        album = Album.query.filter(Album.url == album_id).first()
+        if not album:
+            flash("Wrong album URL")
+            abort(404)
+        elif album.user_id != session["profile"].get("user_id"):
+            flash("You are not the owner of this album")
+            abort(401)
     return render_template("album.html", files_list=files_list)
 
 
-@app.route("/open/<filename>")
+@bp.route("/<album_id>/manage")
+def manage_album(album_id):
+    files_list = os.listdir(current_app.config["UPLOADED_PHOTOS_DEST"])
+    return render_template("album.html", files_list=files_list)
+
+
+@bp.route("/open/<filename>")
 def open_file(filename):
     file_url = photos.url(filename)
     return render_template("index.html", file_url=file_url)
 
 
-@app.route("/delete/<filename>")
+@bp.route("/delete/<filename>")
 def delete_file(filename):
     file_path = photos.path(filename)
     os.remove(file_path)
-    return redirect(url_for("manage_file"))
+    return redirect(url_for("main.manage_file"))
 
 
 ## Error Handling
-@app.errorhandler(AuthError)
+@bp.errorhandler(AuthError)
 def auth_error(e):
     print(AuthError)
     return (
@@ -364,22 +449,12 @@ def auth_error(e):
     )
 
 
-@app.errorhandler(400)
+@bp.errorhandler(400)
 def bad_request(error):
     return (jsonify({"success": False, "error": 400, "message": "Bad Request"}), 400)
 
 
-@app.errorhandler(401)
-def unauthorized(error):
-    return (jsonify({"success": False, "error": 401, "message": "Unauthorized"}), 401)
-
-
-@app.errorhandler(404)
-def not_found(error):
-    return render_template("404.html")
-
-
-@app.errorhandler(405)
+@bp.errorhandler(405)
 def not_allowed(error):
     return (
         jsonify({"success": False, "error": 405, "message": "Method Not Allowed"}),
@@ -387,12 +462,12 @@ def not_allowed(error):
     )
 
 
-@app.errorhandler(422)
+@bp.errorhandler(422)
 def unprocessable(error):
     return (jsonify({"success": False, "error": 422, "message": "Unprocessable"}), 422)
 
 
-@app.errorhandler(500)
+@bp.errorhandler(500)
 def internal_server_error(error):
     return (
         jsonify({"success": False, "error": 500, "message": "Internal Server Error"}),

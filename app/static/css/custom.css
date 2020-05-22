@@ -1,11 +1,29 @@
-.center-screen {
+.center {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
-  min-height: 100vh;
-  width: 70%;
+  min-height: 30vh;
+}
+
+.center-div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 30vh;
+}
+
+.edit-title {
+  width: 50%;
+  margin: auto;
+  padding-top: 10%;
+}
+
+.btn-login {
+  position: absolute;
+  top: 50%;
 }
 
 .some-padding {
@@ -16,4 +34,15 @@
 .avatar {
   width: 25px;
   border-radius: 50%;
+}
+
+.title {
+  padding-left: 100px;
+  font-size: 22px;
+}
+
+.edit {
+  font-size: 14px;
+  margin-bottom: -4px;
+  padding-left: 8px;
 }

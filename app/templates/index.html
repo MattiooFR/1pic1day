@@ -1,22 +1,24 @@
 {% extends "base.html" %}
 
+{% block title %}1pic1day{% endblock %}
+
 {% block content %}
 
 {% if not logged_in %}
-<div class="">
-  <a class="btn btn-primary" href="/create">Create Anon Album</a>
-</div>
-</br>
-<div class="login-box">
-  <a class="btn btn-primary" href="/login">Log In</a>
+<div class="center">
+  <div>
+    <a class="btn btn-primary" href="/create">Create album without registering</a>
+  </div>
+  <br>
+  <div>
+    <a class="btn btn-primary" href="/login">Log In</a>
+  </div>
 </div>
 {% else %}
-<div class="logged-in-box auth0-box logged-in">
-  <h2>Welcome {{userinfo['name']}}</h2>
-  <pre>{{userinfo_pretty}}</pre>
-  <a class="btn btn-primary btn-logout btn-block" href="/logout"
-    >Logout</a
-  >
+<div class="center">
+  <div>
+    <a class="btn btn-primary" href="/create">Create 1 album</a>
+  </div>
 </div>
 {% endif %}
 

@@ -9,8 +9,16 @@ db_drop_and_create_all()
 """
 
 
-def db_drop_and_create_all():
+def db_reset():
     db.drop_all()
+    db.create_all()
+
+
+def setup_db(app, database_path):
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_path
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    db.app = app
+    db.init_app(app)
     db.create_all()
 
 
@@ -20,11 +28,17 @@ class Album(db.Model):
     url = Column(String(500), nullable=False)
     timestamp = Column(DateTime, index=True, default=datetime.utcnow)
     user_id = Column(String(50))
+    last_time_viewed = Column(DateTime, default=datetime.utcnow)
+    last_photo_viewed = Column(String(100))
     images = db.relationship("Image", backref="album", lazy="dynamic")
 
     def __repr__(self):
-        return "<Album {} {} {} {}>".format(
-            self.name, self.url, self.user_id, self.images
+        return "<Album {} {} {} {} {}>".format(
+            self.name,
+            self.url,
+            self.user_id,
+            self.last_time_viewed,
+            self.last_photo_viewed,
         )
 
     def __init__(self, name, url, user_id="ANON"):
@@ -56,17 +70,17 @@ class Album(db.Model):
 
 class Image(db.Model):
     id = Column(Integer, primary_key=True)
-    url = Column(String(500), nullable=False)
+    url = Column(String(100), nullable=False)
     timestamp = Column(DateTime, index=True, default=datetime.utcnow)
     viewed = Column(Boolean)
-    album_id = Column(Integer, db.ForeignKey("album.id"))
+    album_id = Column(Integer, db.ForeignKey("album.id"), nullable=False)
 
     def __repr__(self):
-        return "<Album {} {} {}>".format(self.album_id, self.url, self.viewed)
+        return "<Image {} {} {}>".format(self.album_id, self.url, self.viewed)
 
-    def __init__(self, url, album, viewed=False):
+    def __init__(self, url, album_id, viewed=False):
         self.url = url
-        self.album_id = album.id
+        self.album_id = album_id
         self.viewed = viewed
 
     def insert(self):
