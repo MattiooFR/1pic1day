@@ -330,13 +330,13 @@ def create_album():
             db.session.add(album)
             db.session.flush()
             for filename in request.files.getlist(form_album.photo.name):
-                filename = secure_filename(filename.filename)
                 name = hashlib.md5(
                     "admin".encode("utf-8") + str(time.time()).encode("utf-8")
                 ).hexdigest()[:10]
                 photos.save(filename, folder=album_name, name=name + ".")
 
-                file_name = name + "." + filename.split(".")[-1]
+                file_name = secure_filename(filename.filename)
+                file_name = name + "." + file_name.split(".")[-1]
 
                 image = Image(url=file_name, album_id=album.id)
                 db.session.add(image)
@@ -420,23 +420,17 @@ def delete_album(album_id):
     return render_template("album.html", files_list=files_list)
 
 
-@bp.route("/<album_id>/manage")
-def manage_album(album_id):
-    files_list = os.listdir(current_app.config["UPLOADED_PHOTOS_DEST"])
-    return render_template("album.html", files_list=files_list)
+# @bp.route("/<album_id>/manage")
+# def manage_album(album_id):
+#     files_list = os.listdir(current_app.config["UPLOADED_PHOTOS_DEST"])
+#     return render_template("album.html", files_list=files_list)
 
 
-@bp.route("/open/<filename>")
-def open_file(filename):
-    file_url = photos.url(filename)
-    return render_template("index.html", file_url=file_url)
-
-
-@bp.route("/delete/<filename>")
-def delete_file(filename):
-    file_path = photos.path(filename)
-    os.remove(file_path)
-    return redirect(url_for("main.manage_file"))
+# @bp.route("/delete/<filename>")
+# def delete_file(filename):
+#     file_path = photos.path(filename)
+#     os.remove(file_path)
+#     return redirect(url_for("main.manage_file"))
 
 
 ## Error Handling
