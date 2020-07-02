@@ -29,7 +29,7 @@ class Album(db.Model):
     timestamp = Column(DateTime, index=True, default=datetime.utcnow)
     user_id = Column(String(50))
     last_time_viewed = Column(DateTime, default=datetime.utcnow)
-    last_photo_viewed = Column(String(100))
+    last_photo_viewed = Column(String(300))
     images = db.relationship("Image", backref="album", lazy="dynamic")
 
     def __repr__(self):
@@ -70,7 +70,7 @@ class Album(db.Model):
 
 class Image(db.Model):
     id = Column(Integer, primary_key=True)
-    url = Column(String(100), nullable=False)
+    url = Column(String(300), nullable=False)
     timestamp = Column(DateTime, index=True, default=datetime.utcnow)
     viewed = Column(Boolean)
     album_id = Column(Integer, db.ForeignKey("album.id"), nullable=False)

@@ -20,6 +20,10 @@ from urllib.request import urlopen
 
 import random
 import shutil
+import uuid
+import boto3
+
+s3_resource = boto3.resource("s3")
 
 import datetime
 import time
@@ -38,6 +42,30 @@ class AuthError(Exception):
     def __init__(self, error, status_code):
         self.error = error
         self.status_code = status_code
+
+
+def create_bucket_name(bucket_prefix):
+    # The generated bucket name must be between 3 and 63 chars long
+    return "".join([bucket_prefix, str(uuid.uuid4())])
+
+
+def create_bucket(bucket_prefix, s3_connection):
+    session = boto3.session.Session()
+    current_region = session.region_name
+    bucket_name = create_bucket_name(bucket_prefix)
+    bucket_response = s3_connection.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": current_region},
+    )
+    return bucket_name, bucket_response
+
+
+def delete_all_objects(bucket_name):
+    res = []
+    bucket = s3_resource.Bucket(bucket_name)
+    for obj_version in bucket.object_versions.all():
+        res.append({"Key": obj_version.object_key, "VersionId": obj_version.id})
+    bucket.delete_objects(Delete={"Objects": res})
 
 
 # Auth Header
@@ -193,7 +221,7 @@ def home():
         return render_template("index.html", logged_in=False)
 
 
-@bp.route("/auth")
+@bp.route("/auth", methods=["GET"])
 def auth():
     # Handles response from token endpoint
     token = current_app.auth0.authorize_access_token()
@@ -210,7 +238,7 @@ def auth():
     return redirect(url_for("main.home"))
 
 
-@bp.route("/login")
+@bp.route("/login", methods=["GET"])
 def login():
     redirect_uri = current_app.config.get("AUTH0_ALLOWED_CALLBACK")
     return current_app.auth0.authorize_redirect(
@@ -218,7 +246,7 @@ def login():
     )
 
 
-@bp.route("/logout")
+@bp.route("/logout", methods=["GET"])
 def logout():
     # Clear session stored data
     session.clear()
@@ -235,20 +263,16 @@ def logout():
     )
 
 
-@bp.route("/profile")
 @requires_auth("get:albums")
-def profile(payload):
-    return render_template("profile.html")
-
-
-@bp.route("/edit")
-def edit_album():
-    return render_template("index.html")
-
-
-@bp.route("/albums")
+@bp.route("/albums", methods=["GET"])
 def get_albums():
-    return render_template("index.html")
+    albums = Album.query.filter(
+        Album.user_id == session["profile"].get("user_id")
+    ).all()
+    albums = [album.format() for album in albums]
+    return render_template(
+        "my_albums.html", albums=albums, logged_in=True, userinfo=session["profile"]
+    )
 
 
 @bp.route("/<album_id>", methods=["GET"])
@@ -285,10 +309,10 @@ def get_album(album_id):
         userinfo = None
         can_manage = False
         logged_in = False
-
+    print(photo_picked)
     return render_template(
         "album.html",
-        photo=url_for("static", filename="uploads/" + album_id + "/" + photo_picked),
+        photo=photo_picked,
         userinfo=userinfo,
         can_manage=can_manage,
         logged_in=logged_in,
@@ -326,19 +350,33 @@ def create_album():
         ).hexdigest()[:10]
 
         try:
+            bucket_name, bucket_response = create_bucket(
+                bucket_prefix=album_name, s3_connection=s3_resource
+            )
             album = Album(name=form_values.get("name"), url=album_name, user_id=user_id)
             db.session.add(album)
             db.session.flush()
             for filename in request.files.getlist(form_album.photo.name):
+                file_name = secure_filename(filename.filename)
                 name = hashlib.md5(
                     "admin".encode("utf-8") + str(time.time()).encode("utf-8")
                 ).hexdigest()[:10]
-                photos.save(filename, folder=album_name, name=name + ".")
+                file_name = f'{name}.{file_name.split(".")[-1]}'
 
-                file_name = secure_filename(filename.filename)
-                file_name = name + "." + file_name.split(".")[-1]
+                # photos.save(filename, folder=bucket_name, name=name + ".")
 
-                image = Image(url=file_name, album_id=album.id)
+                print(filename.filename)
+
+                s3_resource.Bucket(bucket_name).put_object(
+                    Body=filename,
+                    Key=file_name,
+                    ContentType=request.mimetype,
+                    ACL="public-read",
+                )
+
+                db_file_url = f"https://{bucket_name}.s3.amazonaws.com/{file_name}"
+
+                image = Image(url=db_file_url, album_id=album.id)
                 db.session.add(image)
 
             db.session.commit()
@@ -350,9 +388,11 @@ def create_album():
             error = True
             db.session.rollback()
             print(sys.exc_info())
-            shutil.rmtree(
-                os.path.join(current_app.config.get("UPLOADED_PHOTOS_DEST"), album_name)
-            )
+            delete_all_objects(bucket_name)
+            s3_resource.Bucket(bucket_name).delete()
+            # shutil.rmtree(
+            #     os.path.join(current_app.config.get("UPLOADED_PHOTOS_DEST"), album_name)
+            # )
         finally:
             db.session.close()
 
@@ -407,7 +447,7 @@ def edit_album_name(album_id):
 
 
 @requires_auth("delete:album")
-@bp.route("/<album_id>/delete")
+@bp.route("/<album_id>/delete", methods=["DELETE"])
 def delete_album(album_id):
     if "profile" in session:
         album = Album.query.filter(Album.url == album_id).first()
@@ -417,20 +457,26 @@ def delete_album(album_id):
         elif album.user_id != session["profile"].get("user_id"):
             flash("You are not the owner of this album")
             abort(401)
+        else:
+            album_name = album.name
+            try:
+                album.delete()
+                shutil.rmtree(
+                    os.path.join(
+                        current_app.config.get("UPLOADED_PHOTOS_DEST"), album_id
+                    )
+                )
+            except BaseException:
+                abort(500)
+            flash("Album {} deleted".format(album_name))
+
     return render_template("album.html", files_list=files_list)
 
 
-# @bp.route("/<album_id>/manage")
-# def manage_album(album_id):
-#     files_list = os.listdir(current_app.config["UPLOADED_PHOTOS_DEST"])
-#     return render_template("album.html", files_list=files_list)
-
-
-# @bp.route("/delete/<filename>")
-# def delete_file(filename):
-#     file_path = photos.path(filename)
-#     os.remove(file_path)
-#     return redirect(url_for("main.manage_file"))
+@requires_auth("")
+@bp.route("/profile", methods=["GET"])
+def profile():
+    return render_template("profile.html", logged_in=True, userinfo=session["profile"])
 
 
 ## Error Handling

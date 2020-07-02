@@ -19,6 +19,8 @@ flask-uploads = {git = "https://github.com/maxcountryman/flask-uploads.git"}
 werkzeug = "^1.0.1"
 python-jose = "^3.1.0"
 bootstrap-flask = "^1.3.1"
+flask-testing = "^0.8.0"
+boto3 = "^1.14.15"
 
 [tool.poetry.dev-dependencies]
 python-dotenv = "^0.13.0"
@@ -27,6 +29,7 @@ black = {version = "^18.3-alpha.0", allow-prereleases = true}
 pytest = "^5.0"
 pytest-cov = "^2.7"
 Flask-Testing = "^0.8.0"
+flake8 = "^3.8.3"
 
 [build-system]
 requires = ["poetry>=0.12"]

@@ -1,6 +1,5 @@
 {
     "python.formatting.provider": "black",
-    "python.pythonPath": "/Users/mattioo/Library/Caches/pypoetry/virtualenvs/1pic1day-VMUsdOQq-py3.8",
     "python.testing.nosetestsEnabled": false,
     "python.testing.promptToConfigure": false,
     "python.testing.pytestEnabled": false,
@@ -12,5 +11,7 @@
     "spellright.language": [
         "fr",
         "en"
-    ]
+    ],
+    "python.linting.flake8Enabled": true,
+    "python.linting.enabled": true
 }
