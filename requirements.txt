@@ -91,9 +91,6 @@ flask-script==2.0.6 \
 flask-sqlalchemy==2.4.3 \
     --hash=sha256:0b656fbf87c5f24109d859bafa791d29751fabbda2302b606881ae5485b557a5 \
     --hash=sha256:fcfe6df52cd2ed8a63008ca36b86a51fa7a4b70cef1c39e5625f722fca32308e
-flask-testing==0.8.0 \
-    --hash=sha256:d849bf53eb1ceb09dff6611888588cb60f20238058fb1ebcd917d69febc373e6
--e git+https://github.com/maxcountryman/flask-uploads.git@f66d7dc93e684fa0a3a4350a38e41ae00483a796#egg=flask-uploads
 flask-wtf==0.14.3 \
     --hash=sha256:d417e3a0008b5ba583da1763e4db0f55a1269d9dd91dcc3eb3c026d3c5dbd720 \
     --hash=sha256:57b3faf6fe5d6168bda0c36b0df1d05770f8e205e18332d0376ddb954d17aef2

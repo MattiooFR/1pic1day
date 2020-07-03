@@ -23,7 +23,6 @@ import shutil
 import uuid
 import boto3
 
-s3_resource = boto3.resource("s3")
 
 import datetime
 import time
@@ -32,8 +31,10 @@ import sys
 
 from app.models import Album, Image
 from app.main.forms import CreateAlbumForm, EditAlbumNameForm
-from app import db, photos
+from app import db
 from app.main import bp
+
+s3_resource = boto3.resource("s3")
 
 ALGORITHMS = ["RS256"]
 
@@ -198,7 +199,7 @@ def requires_auth(permission=""):
                 token = session["jwt_payload"]["access_token"]
                 payload = verify_decode_jwt(token)
                 check_permissions(permission, payload)
-            except:
+            except BaseException:
                 abort(401)
 
             return f(payload, *args, **kwargs)
@@ -282,7 +283,7 @@ def get_album(album_id):
         flash("Wrong album URL")
         abort(404)
 
-    if len(album.images.filter(Image.viewed == False).all()) == 0:
+    if len(album.images.filter(Image.viewed is False).all()) == 0:
         for image in album.images.all():
             image.viewed = False
         db.session.commit()
@@ -290,7 +291,7 @@ def get_album(album_id):
     if (datetime.datetime.now() - album.last_time_viewed) > datetime.timedelta(
         minutes=1
     ) or album.last_photo_viewed is None:
-        files_list = [i.url for i in album.images.filter(Image.viewed == False).all()]
+        files_list = [i.url for i in album.images.filter(Image.viewed is False).all()]
         photo_picked = random.choice(files_list)
         album.last_photo_viewed = photo_picked
         album.last_time_viewed = datetime.datetime.now()
@@ -479,7 +480,7 @@ def profile():
     return render_template("profile.html", logged_in=True, userinfo=session["profile"])
 
 
-## Error Handling
+# Error Handling
 @bp.errorhandler(AuthError)
 def auth_error(e):
     print(AuthError)

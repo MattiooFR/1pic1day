@@ -3,7 +3,8 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from authlib.integrations.flask_client import OAuth
 from flask_sqlalchemy import SQLAlchemy
-from flask_uploads import UploadSet, configure_uploads, IMAGES, patch_request_class
+
+# from flask_uploads import UploadSet, configure_uploads, IMAGES, patch_request_class
 from flask_bootstrap import Bootstrap
 from config import Config
 
@@ -13,7 +14,7 @@ migrate = Migrate()
 oauth = OAuth()
 
 
-photos = UploadSet("photos", IMAGES)
+# photos = UploadSet("photos", IMAGES)
 
 
 def create_app(config_class=Config):
@@ -38,8 +39,8 @@ def create_app(config_class=Config):
 
     app.register_blueprint(main_bp)
 
-    configure_uploads(app, photos)
-    patch_request_class(app)  # set maximum file size, default is 16MB
+    # configure_uploads(app, photos)
+    # patch_request_class(app)  # set maximum file size, default is 16MB
 
     CORS(app, resources={r"*": {"origins": r"*"}})
 

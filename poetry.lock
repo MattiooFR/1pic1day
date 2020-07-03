@@ -574,7 +574,7 @@ Flask = ">=0.10"
 SQLAlchemy = ">=0.8.0"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "Unit testing for Flask"
 name = "flask-testing"
 optional = false
@@ -583,22 +583,6 @@ version = "0.8.0"
 
 [package.dependencies]
 Flask = "*"
-
-[[package]]
-category = "main"
-description = "Flexible and efficient upload handling for Flask"
-name = "Flask-Uploads"
-optional = false
-python-versions = "*"
-version = "0.2.1"
-
-[package.dependencies]
-Flask = ">=0.8.0"
-
-[package.source]
-reference = "f66d7dc93e684fa0a3a4350a38e41ae00483a796"
-type = "git"
-url = "https://github.com/maxcountryman/flask-uploads.git"
 
 [[package]]
 category = "main"
@@ -1098,7 +1082,7 @@ ipaddress = ["ipaddress"]
 locale = ["Babel (>=1.3)"]
 
 [metadata]
-content-hash = "d1c0a2e10d2b5c87897a179f8bfb7733f7088aa13e32affe8db7743c0200a79e"
+content-hash = "486c6d8b287b9b8217a2d4d66581dc961d981e8690fc4e50a7baa459e436ce1f"
 python-versions = "^3.8"
 
 [metadata.files]
@@ -1353,7 +1337,6 @@ flask-sqlalchemy = [
 flask-testing = [
     {file = "Flask-Testing-0.8.0.tar.gz", hash = "sha256:d849bf53eb1ceb09dff6611888588cb60f20238058fb1ebcd917d69febc373e6"},
 ]
-Flask-Uploads = []
 flask-wtf = [
     {file = "Flask-WTF-0.14.3.tar.gz", hash = "sha256:d417e3a0008b5ba583da1763e4db0f55a1269d9dd91dcc3eb3c026d3c5dbd720"},
     {file = "Flask_WTF-0.14.3-py2.py3-none-any.whl", hash = "sha256:57b3faf6fe5d6168bda0c36b0df1d05770f8e205e18332d0376ddb954d17aef2"},

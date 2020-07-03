@@ -5,7 +5,8 @@ from wtforms import StringField, SubmitField, MultipleFileField
 from werkzeug.datastructures import FileStorage
 from wtforms.validators import InputRequired, StopValidation, DataRequired
 from flask_wtf.file import FileField, FileRequired, FileAllowed
-from app import photos
+
+# from app import photos
 
 
 class MultiFileAllowed(object):
@@ -44,7 +45,7 @@ class MultiFileAllowed(object):
 class CreateAlbumForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired()])
     photo = MultipleFileField(
-        validators=[MultiFileAllowed(photos, "Image Only!"), InputRequired()]
+        validators=[MultiFileAllowed(["jpg", "png"], "Image Only!"), InputRequired()]
     )
     submit = SubmitField("Create album")
 
