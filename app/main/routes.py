@@ -34,7 +34,7 @@ from app.main.forms import CreateAlbumForm, EditAlbumNameForm
 from app import db
 from app.main import bp
 
-s3_resource = boto3.resource("s3")
+s3_resource = boto3.resource("s3", region_name="eu-west-1")
 
 ALGORITHMS = ["RS256"]
 
@@ -53,6 +53,7 @@ def create_bucket_name(bucket_prefix):
 def create_bucket(bucket_prefix, s3_connection):
     session = boto3.session.Session()
     current_region = session.region_name
+    print(current_region)
     bucket_name = create_bucket_name(bucket_prefix)
     bucket_response = s3_connection.create_bucket(
         Bucket=bucket_name,
@@ -364,8 +365,6 @@ def create_album():
                 ).hexdigest()[:10]
                 file_name = f'{name}.{file_name.split(".")[-1]}'
 
-                # photos.save(filename, folder=bucket_name, name=name + ".")
-
                 print(filename.filename)
 
                 s3_resource.Bucket(bucket_name).put_object(
@@ -391,9 +390,10 @@ def create_album():
             print(sys.exc_info())
             delete_all_objects(bucket_name)
             s3_resource.Bucket(bucket_name).delete()
-            # shutil.rmtree(
-            #     os.path.join(current_app.config.get("UPLOADED_PHOTOS_DEST"), album_name)
-            # )
+        except boto3.exception.ParamValidationError:
+            error = True
+            db.session.rollback()
+            print(sys.exc_info())
         finally:
             db.session.close()
 

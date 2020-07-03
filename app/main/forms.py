@@ -4,9 +4,6 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, MultipleFileField
 from werkzeug.datastructures import FileStorage
 from wtforms.validators import InputRequired, StopValidation, DataRequired
-from flask_wtf.file import FileField, FileRequired, FileAllowed
-
-# from app import photos
 
 
 class MultiFileAllowed(object):
