@@ -51,9 +51,8 @@ def create_bucket_name(bucket_prefix):
 
 
 def create_bucket(bucket_prefix, s3_connection):
-    session = boto3.session.Session()
+    session = boto3.session.Session(region_name="eu-west-1")
     current_region = session.region_name
-    print(current_region)
     bucket_name = create_bucket_name(bucket_prefix)
     bucket_response = s3_connection.create_bucket(
         Bucket=bucket_name,
