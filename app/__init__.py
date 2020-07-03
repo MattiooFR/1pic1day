@@ -6,10 +6,6 @@ from flask_sqlalchemy import SQLAlchemy
 
 from flask_bootstrap import Bootstrap
 
-from dotenv import load_dotenv, find_dotenv
-
-load_dotenv(find_dotenv())
-
 from config import Config
 
 bootstrap = Bootstrap()
