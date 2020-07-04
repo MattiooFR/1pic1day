@@ -3,7 +3,6 @@ import os
 import json
 
 from flask import (
-    jsonify,
     redirect,
     render_template,
     session,
@@ -477,39 +476,3 @@ def delete_album(album_id):
 @bp.route("/profile", methods=["GET"])
 def profile():
     return render_template("profile.html", logged_in=True, userinfo=session["profile"])
-
-
-# Error Handling
-@bp.errorhandler(AuthError)
-def auth_error(e):
-    print(AuthError)
-    return (
-        jsonify({"success": False, "error": e.status_code, "message": e.description}),
-        e.status_code,
-    )
-
-
-@bp.errorhandler(400)
-def bad_request(error):
-    return (jsonify({"success": False, "error": 400, "message": "Bad Request"}), 400)
-
-
-@bp.errorhandler(405)
-def not_allowed(error):
-    return (
-        jsonify({"success": False, "error": 405, "message": "Method Not Allowed"}),
-        405,
-    )
-
-
-@bp.errorhandler(422)
-def unprocessable(error):
-    return (jsonify({"success": False, "error": 422, "message": "Unprocessable"}), 422)
-
-
-@bp.errorhandler(500)
-def internal_server_error(error):
-    return (
-        jsonify({"success": False, "error": 500, "message": "Internal Server Error"}),
-        500,
-    )
