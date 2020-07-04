@@ -403,7 +403,7 @@ def create_album():
             else:
                 flash(
                     "The album was created. Accessible at this address : {}".format(
-                        "http://localhost:5000/" + album_name
+                        "http://https://one-pic-one-day.herokuapp.com/" + album_name
                     )
                 )
     else:
