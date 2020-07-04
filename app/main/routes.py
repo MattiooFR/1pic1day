@@ -282,7 +282,7 @@ def get_album(album_id):
         flash("Wrong album URL")
         abort(404)
 
-    if len(album.images.filter(Image.viewed is False).all()) == 0:
+    if len(album.images.filter(Image.viewed == False).all()) == 0:
         for image in album.images.all():
             image.viewed = False
         db.session.commit()
@@ -290,7 +290,7 @@ def get_album(album_id):
     if (datetime.datetime.now() - album.last_time_viewed) > datetime.timedelta(
         minutes=1
     ) or album.last_photo_viewed is None:
-        files_list = [i.url for i in album.images.filter(Image.viewed is False).all()]
+        files_list = [i.url for i in album.images.filter(Image.viewed == False).all()]
         photo_picked = random.choice(files_list)
         album.last_photo_viewed = photo_picked
         album.last_time_viewed = datetime.datetime.now()
@@ -309,7 +309,6 @@ def get_album(album_id):
         userinfo = None
         can_manage = False
         logged_in = False
-    print(photo_picked)
     return render_template(
         "album.html",
         photo=photo_picked,
@@ -362,8 +361,6 @@ def create_album():
                     "admin".encode("utf-8") + str(time.time()).encode("utf-8")
                 ).hexdigest()[:10]
                 file_name = f'{name}.{file_name.split(".")[-1]}'
-
-                print(filename.filename)
 
                 s3_resource.Bucket(bucket_name).put_object(
                     Body=filename,
