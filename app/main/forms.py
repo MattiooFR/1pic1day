@@ -42,7 +42,10 @@ class MultiFileAllowed(object):
 class CreateAlbumForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired()])
     photo = MultipleFileField(
-        validators=[MultiFileAllowed(["jpg", "png"], "Image Only!"), InputRequired()]
+        validators=[
+            MultiFileAllowed(["jpg", "png", "jpeg", "gif", "heic"], "Image Only!"),
+            InputRequired(),
+        ]
     )
     submit = SubmitField("Create album")
 
