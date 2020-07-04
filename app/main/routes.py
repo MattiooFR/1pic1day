@@ -288,7 +288,7 @@ def get_album(album_id):
         db.session.commit()
 
     if (datetime.datetime.now() - album.last_time_viewed) > datetime.timedelta(
-        minutes=1
+        days=1
     ) or album.last_photo_viewed is None:
         files_list = [i.url for i in album.images.filter(Image.viewed == False).all()]
         photo_picked = random.choice(files_list)
