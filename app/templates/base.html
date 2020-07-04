@@ -39,9 +39,9 @@
         <div class="navbar-nav">
           <a class="nav-item nav-link" {% if request.endpoint == 'create' %} class="nav-item nav-link active" {% endif %} href="{{ url_for('main.create_album') }}">Create 1 album</a>
           <a class="nav-item nav-link" {% if request.endpoint == 'albums' %} class="nav-item nav-link active" {% endif %} href="{{ url_for('main.get_albums') }}">My albums</a>
-          {% comment %} {% if can_manage %}
+          <!-- {% if can_manage %}
               <a class="nav-item nav-link" href="{{ url_for('main.delete_album', album_id=request.path.split('/')[-1]) }}">Delete this album</a>
-          {% endif %} {% endcomment %}
+          {% endif %}-->
           <a class="nav-item nav-link" {% if request.endpoint == 'profile' %} class="nav-item nav-link active" {% endif %} href="{{ url_for('main.profile') }}">Hello {{ userinfo['name'].split(" ")[0] }}  <img class="avatar" src="{{ userinfo['picture'] }}"/></a>
           <a class="nav-item nav-link logout" href="{{ url_for('main.logout') }}">logout</a>
         </div>
