@@ -305,6 +305,10 @@ def get_album(album_id):
         userinfo = session["profile"]
         can_manage = True
         logged_in = True
+    elif "profile" in session:
+        userinfo = session["profile"]
+        logged_in = True
+        can_manage = False
     else:
         userinfo = None
         can_manage = False

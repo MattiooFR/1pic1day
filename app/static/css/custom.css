@@ -54,3 +54,8 @@ img.center {
   margin-bottom: -4px;
   padding-left: 8px;
 }
+
+.logout {
+  font-size: 13px;
+  margin-top: 5px;
+}
